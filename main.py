@@ -66,7 +66,10 @@ class User:
 
 	def checkvalues(self):
 		last = self.sheet.acell('H1').value
-		last = int(last)
+		if len(last) > 0:
+			last = int(last)
+		else:
+			return
 		sleep(1)
 		while True:
 			row = self.sheet.row_values(last + 1)
