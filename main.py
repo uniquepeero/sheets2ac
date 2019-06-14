@@ -12,7 +12,7 @@ from time import sleep
 from ipaddress import ip_address
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 fh = logging.FileHandler("logs.log", encoding="utf-8")
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
@@ -65,7 +65,8 @@ class User:
 
 
 	def checkvalues(self):
-		last = int(self.sheet.acell('H1').value)
+		last = self.sheet.acell('H1').value
+		last = int(last)
 		sleep(1)
 		while True:
 			row = self.sheet.row_values(last + 1)
@@ -73,6 +74,10 @@ class User:
 			if row:
 				last += 1
 				sended = self.send(row[1], row[2], row[3])
+				if 'error' not in sended.keys():
+					self.sheet.update_cell(last, 5, sended['order_id'])
+				else:
+					log.error(f'Send: {sended["error"]}')
 				sleep(1)
 			else:
 				break
