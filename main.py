@@ -29,28 +29,28 @@ class User:
 			self.API = self.config[self.NAME]['API']
 			self.URL = self.config['URL']['url']
 
-			scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-			creds = ServiceAccountCredentials.from_json_keyfile_name(f'cfg/{self.NAME}.json', scope)
-			client = gspread.authorize(creds)
-			self.sheet = client.open(f'{self.NAME} to AC').sheet1
+			self.scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+			self.creds = ServiceAccountCredentials.from_json_keyfile_name(f'cfg/{self.NAME}.json', self.scope)
+			self.client = gspread.authorize(self.creds)
+			self.sheet = self.client.open(f'{self.NAME} to AC').sheet1
 			log.debug(f'{name} connected to Sheets')
 			sleep(2)
 		else:
 			log.critical('Configuration file not found')
 
 	def send(self, location, name, phone):
-		country = countryprice(location)['country']
-		price = countryprice(location)['price']
+		#country = countryprice(location)['country']
+		#price = countryprice(location)['price']
 		params = {
 			'api_key': self.API,
 			'name': name,
 			'phone': phone,
-			'offer_id': self.config[self.NAME][country],
-			'country_code': self.config['Countries'][country],
+			'offer_id': self.config[self.NAME][location],
+			'country_code': self.config['Countries'][location],
 			'base_url': f'https://land1.abyz.xyz/{randomString()}',
-			'price': price,
+			'price': self.config[self.NAME][f'{location}_price'],
 			'referrer': f'https://{randomString(5)}.com/{randomString()}',
-			'ip': country_ip(country)
+			'ip': country_ip(location)
 		}
 		try:
 			res = requests.get(self.URL, params=params)
@@ -65,6 +65,8 @@ class User:
 
 
 	def checkvalues(self):
+		if self.creds.access_token_expired: self.client.login()
+
 		last = self.sheet.acell('H1').value
 		if len(last) > 0:
 			last = int(last)
@@ -78,14 +80,14 @@ class User:
 				last += 1
 				sended = self.send(row[1], row[2], row[3])
 				if 'error' not in sended.keys():
-					self.sheet.update_cell(last, 5, sended['order_id'])
+					self.sheet.update_cell(last, 6, sended['order_id'])
 				else:
 					log.error(f'Send: {sended["error"]}')
 				sleep(1)
 			else:
 				break
 		self.sheet.update_acell('H1', last)
-		sleep(1)
+		sleep(2)
 
 
 def country_ip(country):
@@ -139,13 +141,13 @@ def countryprice(string):
 if __name__ == '__main__':
 	try:
 		log.info('Started')
-		user1 = User('Artur')
-		user2 = User('Tima')
-		user3 = User('Artem')
+		user1 = User('Ildar')
+		#user2 = User('Tima')
+		#user3 = User('Artem')
 		while True:
 			user1.checkvalues()
-			user2.checkvalues()
-			user3.checkvalues()
+			#user2.checkvalues()
+			#user3.checkvalues()
 	except Exception as e:
 		log.critical('Main proccess', exc_info=True)
 	finally:
